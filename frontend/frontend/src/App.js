@@ -16,7 +16,7 @@ function App() {
     switch (activeTab) {
       case "overview":
         return (
-          <div className="view-grid">
+          <div className="view-column">
             <Analytics />
             <Metrics />
           </div>

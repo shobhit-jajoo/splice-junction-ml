@@ -7,7 +7,8 @@ node_modules/
 
 # Environment
 .env
-
+venv/
+.venv/
 # Model files (optional — large files)
 models/*.pkl
 models/*.h5
