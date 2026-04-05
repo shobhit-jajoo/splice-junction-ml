@@ -1,5 +1,5 @@
 import numpy as np
-from model.loader import dl_model
+import model.loader as loader
 from services.preprocess import encode_sequence
 
 label_map_reverse = {
@@ -9,15 +9,36 @@ label_map_reverse = {
 }
 
 
-def predict_dl(sequence):
+def _build_probabilities(probabilities):
+    return {
+        label_map_reverse[idx]: float(probabilities[idx])
+        for idx in range(len(probabilities))
+    }
+
+
+def get_dl_prediction_details(sequence):
+    if loader.dl_model is None:
+        raise RuntimeError("Deep Learning model is not loaded. Start the app after successful model loading.")
+
     encoded = encode_sequence(sequence)
 
     # reshape for CNN
     encoded = np.array(encoded).reshape(-1, 4)
     encoded = encoded.reshape(1, encoded.shape[0], 4)
 
-    pred_probs = dl_model.predict(encoded)
-    pred = np.argmax(pred_probs, axis=1)[0]
-    confidence = float(np.max(pred_probs))
+    pred_probs = loader.dl_model.predict(encoded)
+    probabilities = pred_probs[0]
+    prediction_idx = int(np.argmax(probabilities))
+    confidence = float(np.max(probabilities))
 
-    return label_map_reverse[pred], confidence
+    return {
+        "prediction": label_map_reverse[prediction_idx],
+        "confidence": confidence,
+        "probabilities": _build_probabilities(probabilities)
+    }
+
+
+def predict_dl(sequence):
+    details = get_dl_prediction_details(sequence)
+
+    return details["prediction"], details["confidence"]

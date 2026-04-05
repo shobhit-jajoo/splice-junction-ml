@@ -1,4 +1,4 @@
-from model.loader import kbann_model
+import model.loader as loader
 from services.preprocess import encode_sequence
 from services.kbann_features import extract_kbann_features
 import numpy as np
@@ -9,7 +9,17 @@ label_map_reverse = {
     2: "N"
 }
 
-def predict_kbann(sequence):
+def _build_probabilities(probabilities):
+    return {
+        label_map_reverse[idx]: float(probabilities[idx])
+        for idx in range(len(probabilities))
+    }
+
+
+def get_kbann_prediction_details(sequence):
+    if loader.kbann_model is None:
+        raise RuntimeError("KBANN model is not loaded. Start the app after successful model loading.")
+
     encoded = encode_sequence(sequence)
 
     features = extract_kbann_features(sequence)
@@ -17,7 +27,19 @@ def predict_kbann(sequence):
 
     final_input = encoded + feature_values
 
-    pred = kbann_model.predict([final_input])[0]
-    prob = kbann_model.predict_proba([final_input])[0].max()
+    prediction_idx = int(loader.kbann_model.predict([final_input])[0])
+    class_probabilities = loader.kbann_model.predict_proba([final_input])[0]
+    confidence = float(np.max(class_probabilities))
 
-    return label_map_reverse[pred], float(prob)
+    return {
+        "prediction": label_map_reverse[prediction_idx],
+        "confidence": confidence,
+        "probabilities": _build_probabilities(class_probabilities),
+        "features": features
+    }
+
+
+def predict_kbann(sequence):
+    details = get_kbann_prediction_details(sequence)
+
+    return details["prediction"], details["confidence"]
